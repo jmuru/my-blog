@@ -591,6 +591,9 @@ html {
     & > video {
       width: 100vw;
       object-fit: cover;
+      @include media-query($on-palm) {
+        object-fit: contain;
+      }
     }
 
     & > img.img-placeholder {
