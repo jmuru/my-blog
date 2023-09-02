@@ -120,7 +120,7 @@ Now, let's break down how this Go program accomplishes its goal:
 
 ## Ways to improve
 
-A very powerful concept that is commonly used in golang is concurrency, currently my code retrieves data serially which can be slow depending on the volume of data. One way I can expand on this script is to retrieve fixture data using a group of workers dispatched in paralell 
+A very powerful concept that is commonly used in golang is concurrency, currently my code retrieves data serially which can be slow depending on the volume of data. One way I can expand on this script is to retrieve fixture data using a group of workers dispatched in parallel. 
 
 ## Conclusion
 
