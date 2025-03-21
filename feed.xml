@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="https://www.mindofguru.com/feed.xml" rel="self" type="application/atom+xml" /><link href="https://www.mindofguru.com/" rel="alternate" type="text/html" /><updated>2025-03-21T05:20:00+00:00</updated><id>https://www.mindofguru.com/feed.xml</id><title type="html">mindofguru</title><subtitle>Write an awesome description for your new site here. You can edit this line in _config.yml. It will appear in your document head meta (for Google search results) and in your feed.xml site description.</subtitle><author><name>jmuru</name></author><entry><title type="html">LLM-Powered Web Content Extraction with crawlAI</title><link href="https://www.mindofguru.com/video/ai/crawlai/2025/03/21/crawl4ai.html" rel="alternate" type="text/html" title="LLM-Powered Web Content Extraction with crawlAI" /><published>2025-03-21T00:00:00+00:00</published><updated>2025-03-21T00:00:00+00:00</updated><id>https://www.mindofguru.com/video/ai/crawlai/2025/03/21/crawl4ai</id><content type="html" xml:base="https://www.mindofguru.com/video/ai/crawlai/2025/03/21/crawl4ai.html"><![CDATA[<h1 id="how-to-use-crawlai-with-a-local-llm-to-extract-clean-web-content">How to Use crawlAI with a Local LLM to Extract Clean Web Content</h1>
+
+<p>If you’re working with large websites and want to extract only the meaningful content—like articles, reviews, or tutorials—while ignoring all the clutter (ads, navigation, login prompts, etc.), crawlAI paired with a local LLM like llama3 is a powerful combo.</p>
+
+<p>Here’s how to set it up.</p>
+
+<h2 id="step-1-set-up-your-crawler-and-llm-filter">Step 1 Set Up Your Crawler and LLM Filter</h2>
+
+<p>Using the crawl4ai library, we spin up a headless browser, fetch a web page, and pass the HTML to an LLM-powered content filter. The filter uses custom instructions to clean up the page, keeping only what matters.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="n">crawl4ai</span> <span class="kn">import</span> <span class="n">AsyncWebCrawler</span><span class="p">,</span> <span class="n">BrowserConfig</span><span class="p">,</span> <span class="n">CrawlerRunConfig</span><span class="p">,</span> <span class="n">CacheMode</span>
+<span class="kn">from</span> <span class="n">crawl4ai.content_filter_strategy</span> <span class="kn">import</span> <span class="n">LLMContentFilter</span>
+</code></pre></div></div>
+
+<p>We configure a local LLM (like one served through <a href="https://github.com/ollama/ollama">Ollama</a>):</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">filter</span> <span class="o">=</span> <span class="nc">LLMContentFilter</span><span class="p">(</span>
+    <span class="n">provider</span><span class="o">=</span><span class="sh">"</span><span class="s">ollama/llama3:latest</span><span class="sh">"</span><span class="p">,</span>  <span class="c1"># local LLM
+</span>    <span class="n">api_token</span><span class="o">=</span><span class="sh">"</span><span class="s">no token</span><span class="sh">"</span><span class="p">,</span>             <span class="c1"># no token needed for local
+</span>    <span class="n">chunk_token_threshold</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>       <span class="c1"># fine-tune for large pages
+</span>    <span class="n">instruction</span><span class="o">=</span><span class="sh">"""</span><span class="s">
+        Extract blog content while preserving the original wording.
+        Focus on:
+        - News articles
+        - Reviews
+        - Columns
+        Remove:
+        - Navigation
+        - Ads
+        - Footers
+        Add full links prefixed with https://www.animenewsnetwork.com/
+    </span><span class="sh">"""</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+    <span class="n">base_url</span><span class="o">=</span><span class="sh">"</span><span class="s">https://your-local-ngrok-tunnel.ngrok-free.app</span><span class="sh">"</span>
+<span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="step-2-crawl-and-filter">Step 2: Crawl and Filter</h2>
+
+<p>We fetch the page and apply the filter:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">async</span> <span class="k">with</span> <span class="nc">AsyncWebCrawler</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">browser_config</span><span class="p">)</span> <span class="k">as</span> <span class="n">crawler</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">crawler</span><span class="p">.</span><span class="nf">arun</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">run_config</span><span class="p">)</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="n">result</span><span class="p">.</span><span class="n">cleaned_html</span>
+    <span class="n">filtered_content</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">.</span><span class="nf">filter_content</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="n">ignore_cache</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>You’ll get a cleaned-up Markdown version of the page—perfect for offline reading, summarization, or training datasets.</p>
+
+<h2 id="step-3-save-and-analyze">Step 3: Save and Analyze</h2>
+
+<p>Save the filtered content to a file:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">with</span> <span class="nf">open</span><span class="p">(</span><span class="sh">"</span><span class="s">filtered_content.md</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">w</span><span class="sh">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="sh">"</span><span class="s">utf-8</span><span class="sh">"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="p">.</span><span class="nf">write</span><span class="p">(</span><span class="sh">"</span><span class="se">\n</span><span class="sh">"</span><span class="p">.</span><span class="nf">join</span><span class="p">(</span><span class="n">filtered_content</span><span class="p">))</span>
+</code></pre></div></div>
+
+<p>You can also view how many tokens were used during processing:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">filter</span><span class="p">.</span><span class="nf">show_usage</span><span class="p">()</span>
+</code></pre></div></div>
+
+<h3 id="video-demo">Video Demo</h3>
+<p><img src="https://youtu.be/m-cy457VelQ?si=HCOVa7UcPm3WuSbU" alt="" /></p>]]></content><author><name>jmuru</name></author><category term="video" /><category term="AI" /><category term="crawlAI" /><summary type="html"><![CDATA[How to Use crawlAI with a Local LLM to Extract Clean Web Content]]></summary></entry><entry><title type="html">Setting Up an AWS Lambda Triggered by API Gateway to Send Emails via SES</title><link href="https://www.mindofguru.com/code/aws/2024/05/21/aws-lambda-api-ses.html" rel="alternate" type="text/html" title="Setting Up an AWS Lambda Triggered by API Gateway to Send Emails via SES" /><published>2024-05-21T00:00:00+00:00</published><updated>2024-05-21T00:00:00+00:00</updated><id>https://www.mindofguru.com/code/aws/2024/05/21/aws-lambda-api-ses</id><content type="html" xml:base="https://www.mindofguru.com/code/aws/2024/05/21/aws-lambda-api-ses.html"><![CDATA[<p>In this blog post, we’ll walk through setting up an AWS Lambda function triggered by API Gateway that uses Amazon Simple Email Service (SES) to send emails. We’ll use Go to create the Lambda function, and our goal is to have the function fetch data from an external API and email the results. Let’s dive in!</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>Before we start, make sure you have the following:</p>
+<ul>
+  <li>An AWS account</li>
+  <li>AWS CLI configured</li>
+  <li>Go installed on your local machine</li>
+  <li>Basic knowledge of AWS Lambda, API Gateway, and SES</li>
+</ul>
+
+<h2 id="step-1-setting-up-ses">Step 1: Setting Up SES</h2>
+
+<p>First, you need to verify an email address with SES to use as the sender.</p>
+
+<ol>
+  <li>Go to the SES console.</li>
+  <li>In the left-hand navigation pane, choose <strong>Verified Identities</strong>.</li>
+  <li>Choose <strong>Create Identity</strong>.</li>
+  <li>Follow the prompts to verify an email address.</li>
+</ol>
+
+<h2 id="step-2-writing-the-lambda-function">Step 2: Writing the Lambda Function</h2>
+
+<p>Here’s the Go code for the Lambda function:</p>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="p">(</span>
+    <span class="s">"context"</span>
+    <span class="s">"encoding/json"</span>
+    <span class="s">"fmt"</span>
+    <span class="s">"net/http"</span>
+    <span class="s">"os"</span>
+    <span class="s">"time"</span>
+
+    <span class="s">"github.com/aws/aws-lambda-go/lambda"</span>
+    <span class="s">"github.com/aws/aws-sdk-go/aws"</span>
+    <span class="s">"github.com/aws/aws-sdk-go/aws/session"</span>
+    <span class="s">"github.com/aws/aws-sdk-go/service/ses"</span>
+<span class="p">)</span>
+
+<span class="k">type</span> <span class="n">EndpointList</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">Endpoints</span>   <span class="p">[]</span><span class="n">Endpoint</span> <span class="s">`json:"endpoints"`</span>
+    <span class="n">URI</span>         <span class="kt">string</span>     <span class="s">`json:"uri"`</span>
+    <span class="n">NextPageURI</span> <span class="kt">string</span>     <span class="s">`json:"next_page_uri"`</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Endpoint</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">ID</span>        <span class="kt">string</span>    <span class="s">`json:"id"`</span>
+    <span class="n">CreatedAt</span> <span class="n">time</span><span class="o">.</span><span class="n">Time</span> <span class="s">`json:"created_at"`</span>
+    <span class="n">UpdatedAt</span> <span class="n">time</span><span class="o">.</span><span class="n">Time</span> <span class="s">`json:"updated_at"`</span>
+    <span class="n">PublicURL</span> <span class="kt">string</span>    <span class="s">`json:"public_url"`</span>
+    <span class="n">Proto</span>     <span class="kt">string</span>    <span class="s">`json:"proto"`</span>
+    <span class="n">HostPort</span>  <span class="kt">string</span>    <span class="s">`json:"hostport"`</span>
+    <span class="n">Type</span>      <span class="kt">string</span>    <span class="s">`json:"type"`</span>
+    <span class="n">Tunnel</span>    <span class="n">Tunnel</span>    <span class="s">`json:"tunnel"`</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Tunnel</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">ID</span>  <span class="kt">string</span> <span class="s">`json:"id"`</span>
+    <span class="n">URI</span> <span class="kt">string</span> <span class="s">`json:"uri"`</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">handler</span><span class="p">(</span><span class="n">ctx</span> <span class="n">context</span><span class="o">.</span><span class="n">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="n">apiKey</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Getenv</span><span class="p">(</span><span class="s">"API_KEY"</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">http</span><span class="o">.</span><span class="n">Client</span><span class="p">{}</span>
+
+    <span class="n">req</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">http</span><span class="o">.</span><span class="n">NewRequest</span><span class="p">(</span><span class="s">"GET"</span><span class="p">,</span> <span class="s">"https://api.ngrok.com/endpoints"</span><span class="p">,</span> <span class="no">nil</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">err</span>
+    <span class="p">}</span>
+    <span class="n">req</span><span class="o">.</span><span class="n">Header</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="s">"Authorization"</span><span class="p">,</span> <span class="s">"Bearer "</span><span class="o">+</span><span class="n">apiKey</span><span class="p">)</span>
+    <span class="n">req</span><span class="o">.</span><span class="n">Header</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="s">"Ngrok-Version"</span><span class="p">,</span> <span class="s">"2"</span><span class="p">)</span>
+
+    <span class="n">resp</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">client</span><span class="o">.</span><span class="n">Do</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">err</span>
+    <span class="p">}</span>
+    <span class="k">defer</span> <span class="n">resp</span><span class="o">.</span><span class="n">Body</span><span class="o">.</span><span class="n">Close</span><span class="p">()</span>
+
+    <span class="k">var</span> <span class="n">endpointList</span> <span class="n">EndpointList</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">NewDecoder</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">Body</span><span class="p">)</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="o">&amp;</span><span class="n">endpointList</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">err</span>
+    <span class="p">}</span>
+
+    <span class="n">publicURLs</span> <span class="o">:=</span> <span class="s">""</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">endpoint</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">endpointList</span><span class="o">.</span><span class="n">Endpoints</span> <span class="p">{</span>
+        <span class="n">publicURLs</span> <span class="o">+=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">"Public URL: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">PublicURL</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">sendEmail</span><span class="p">(</span><span class="n">publicURLs</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">sendEmail</span><span class="p">(</span><span class="n">publicURLs</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="n">region</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Getenv</span><span class="p">(</span><span class="s">"REGION"</span><span class="p">)</span>
+    <span class="n">sender</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Getenv</span><span class="p">(</span><span class="s">"SENDER"</span><span class="p">)</span>
+    <span class="n">recipient</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Getenv</span><span class="p">(</span><span class="s">"RECIPIENT"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">region</span> <span class="o">==</span> <span class="s">""</span> <span class="o">||</span> <span class="n">sender</span> <span class="o">==</span> <span class="s">""</span> <span class="o">||</span> <span class="n">recipient</span> <span class="o">==</span> <span class="s">""</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"AWS_REGION, SENDER_EMAIL, or RECIPIENT_EMAIL environment variable is not set"</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">sess</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">session</span><span class="o">.</span><span class="n">NewSession</span><span class="p">(</span><span class="o">&amp;</span><span class="n">aws</span><span class="o">.</span><span class="n">Config</span><span class="p">{</span>
+        <span class="n">Region</span><span class="o">:</span> <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">region</span><span class="p">),</span>
+    <span class="p">})</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"Error creating AWS session: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">svc</span> <span class="o">:=</span> <span class="n">ses</span><span class="o">.</span><span class="n">New</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+
+    <span class="n">input</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">SendEmailInput</span><span class="p">{</span>
+        <span class="n">Destination</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Destination</span><span class="p">{</span>
+            <span class="n">ToAddresses</span><span class="o">:</span> <span class="p">[]</span><span class="o">*</span><span class="kt">string</span><span class="p">{</span>
+                <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">recipient</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="n">Message</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Message</span><span class="p">{</span>
+            <span class="n">Body</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Body</span><span class="p">{</span>
+                <span class="n">Text</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Content</span><span class="p">{</span>
+                    <span class="n">Charset</span><span class="o">:</span> <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="s">"UTF-8"</span><span class="p">),</span>
+                    <span class="n">Data</span><span class="o">:</span>    <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">publicURLs</span><span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">},</span>
+            <span class="n">Subject</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Content</span><span class="p">{</span>
+                <span class="n">Charset</span><span class="o">:</span> <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="s">"UTF-8"</span><span class="p">),</span>
+                <span class="n">Data</span><span class="o">:</span>    <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="s">"Ngrok Public URLs"</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="n">Source</span><span class="o">:</span> <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">sender</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">svc</span><span class="o">.</span><span class="n">SendEmail</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"Error sending email: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="no">nil</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">lambda</span><span class="o">.</span><span class="n">Start</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This script does the following:</p>
+<ol>
+  <li>Fetches the list of endpoints from Ngrok.</li>
+  <li>Parses the JSON response to extract public URLs.</li>
+  <li>Sends an email with the public URLs using SES.</li>
+</ol>
+
+<h2 id="step-3-setting-up-environment-variables">Step 3: Setting Up Environment Variables</h2>
+
+<p>Ensure the following environment variables are set:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">API_KEY</code>: Your Ngrok API key.</li>
+  <li><code class="language-plaintext highlighter-rouge">REGION</code>: Your AWS region (e.g., <code class="language-plaintext highlighter-rouge">us-west-2</code>).</li>
+  <li><code class="language-plaintext highlighter-rouge">SENDER</code>: The verified sender email address.</li>
+  <li><code class="language-plaintext highlighter-rouge">RECIPIENT</code>: The recipient email address.</li>
+</ul>
+
+<h2 id="step-4-deploying-the-lambda-function">Step 4: Deploying the Lambda Function</h2>
+
+<ol>
+  <li><strong>Create a deployment package:</strong>
+    <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nv">GOOS</span><span class="o">=</span>linux <span class="nv">GOARCH</span><span class="o">=</span>amd64 go build <span class="nt">-o</span> main main.go
+ zip deployment.zip main
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Create a Lambda function:</strong>
+    <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code> aws lambda create-function <span class="nt">--function-name</span> SendNgrokEndpoints <span class="se">\</span>
+ <span class="nt">--zip-file</span> fileb://deployment.zip <span class="nt">--handler</span> main <span class="se">\</span>
+ <span class="nt">--runtime</span> go1.x <span class="nt">--role</span> arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_LAMBDA_ROLE
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Set environment variables for the Lambda function:</strong>
+    <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code> aws lambda update-function-configuration <span class="nt">--function-name</span> SendNgrokEndpoints <span class="se">\</span>
+ <span class="nt">--environment</span> <span class="nv">Variables</span><span class="o">=</span><span class="s2">"{API_KEY=your_api_key,REGION=your_region,SENDER=your_sender_email,RECIPIENT=your_recipient_email}"</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h2 id="step-5-setting-up-api-gateway">Step 5: Setting Up API Gateway</h2>
+
+<ol>
+  <li><strong>Create an API:</strong>
+    <ul>
+      <li>Go to the API Gateway console.</li>
+      <li>Choose <strong>Create API</strong> and follow the prompts.</li>
+    </ul>
+  </li>
+  <li><strong>Create a resource and method:</strong>
+    <ul>
+      <li>Create a new resource.</li>
+      <li>Add a <strong>POST</strong> method.</li>
+      <li>Integrate the method with your Lambda function.</li>
+    </ul>
+  </li>
+  <li><strong>Deploy the API:</strong>
+    <ul>
+      <li>Create a new stage and deploy your API.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="step-6-testing-the-setup">Step 6: Testing the Setup</h2>
+
+<p>You can test the setup by triggering the API endpoint through tools like Postman or CURL. If everything is configured correctly, you should receive an email with the Ngrok public URLs.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-X</span> POST https://your-api-id.execute-api.your-region.amazonaws.com/your-stage/your-resource
+</code></pre></div></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>You’ve successfully set up an AWS Lambda function triggered by API Gateway to send emails using SES. This setup is powerful for automating notifications and alerts based on external data. Feel free to customize the function to suit your needs.</p>
+
+<p>Happy coding!</p>]]></content><author><name>jmuru</name></author><category term="code" /><category term="aws" /><summary type="html"><![CDATA[In this blog post, we’ll walk through setting up an AWS Lambda function triggered by API Gateway that uses Amazon Simple Email Service (SES) to send emails. We’ll use Go to create the Lambda function, and our goal is to have the function fetch data from an external API and email the results. Let’s dive in!]]></summary></entry><entry><title type="html">Football Fixture Scraper Concept</title><link href="https://www.mindofguru.com/webscraping/golang/html/web/football/soccer/sports/2023/09/01/futty-scraper.html" rel="alternate" type="text/html" title="Football Fixture Scraper Concept" /><published>2023-09-01T00:00:00+00:00</published><updated>2023-09-01T00:00:00+00:00</updated><id>https://www.mindofguru.com/webscraping/golang/html/web/football/soccer/sports/2023/09/01/futty-scraper</id><content type="html" xml:base="https://www.mindofguru.com/webscraping/golang/html/web/football/soccer/sports/2023/09/01/futty-scraper.html"><![CDATA[<p>In today’s data-driven world, information is often scattered across the web. Sometimes, we need to gather data from websites for various purposes, such as research, analysis, or automation. Go, a powerful programming language, provides us with the tools to perform web scraping and data extraction efficiently.</p>
+
+<p>In this blog post, we’ll explore a Go program that demonstrates web scraping and data extraction. This program is designed to extract fixture information for a sports league from a website. Specifically, we aim to find the date of the matches and the teams that are playing. Let’s dive into the code to understand how it accomplishes this task.</p>
+
+<h2 id="the-code">The Code</h2>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="p">(</span>
+	<span class="s">"fmt"</span>
+	<span class="s">"github.com/PuerkitoBio/goquery"</span>
+	<span class="s">"golang.org/x/net/html"</span>
+	<span class="s">"log"</span>
+	<span class="s">"net/http"</span>
+	<span class="s">"os"</span>
+<span class="p">)</span>
+
+<span class="k">type</span> <span class="n">fixtureResult</span> <span class="k">struct</span> <span class="p">{</span>
+	<span class="n">teams</span>     <span class="p">[]</span><span class="kt">string</span>
+	<span class="n">matchDate</span> <span class="p">[]</span><span class="kt">string</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="c">// Open and parse the HTML file</span>
+	<span class="n">file</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="s">"./2023-ligue1-fixtures.html"</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="n">log</span><span class="o">.</span><span class="n">Fatalf</span><span class="p">(</span><span class="s">"Error opening HTML file: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">defer</span> <span class="n">file</span><span class="o">.</span><span class="n">Close</span><span class="p">()</span>
+
+	<span class="n">doc</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">html</span><span class="o">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="n">log</span><span class="o">.</span><span class="n">Fatalf</span><span class="p">(</span><span class="s">"Error parsing HTML: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="c">// Find and print contents of li.MatchCardsList_matchCard__DBsrE</span>
+	<span class="n">findAndPrintMatchCardContents</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">findAndPrintMatchCardContents</span><span class="p">(</span><span class="n">node</span> <span class="o">*</span><span class="n">html</span><span class="o">.</span><span class="n">Node</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">Type</span> <span class="o">==</span> <span class="n">html</span><span class="o">.</span><span class="n">ElementNode</span> <span class="o">&amp;&amp;</span> <span class="n">node</span><span class="o">.</span><span class="n">Data</span> <span class="o">==</span> <span class="s">"li"</span> <span class="p">{</span>
+		<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">attr</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">node</span><span class="o">.</span><span class="n">Attr</span> <span class="p">{</span>
+			<span class="k">if</span> <span class="n">attr</span><span class="o">.</span><span class="n">Key</span> <span class="o">==</span> <span class="s">"class"</span> <span class="o">&amp;&amp;</span> <span class="n">attr</span><span class="o">.</span><span class="n">Val</span> <span class="o">==</span> <span class="s">"MatchCardsList_matchCard__DBsrE"</span> <span class="p">{</span>
+				<span class="n">anchor</span> <span class="o">:=</span> <span class="n">node</span><span class="o">.</span><span class="n">FirstChild</span>
+				<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">attr</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">anchor</span><span class="o">.</span><span class="n">Attr</span> <span class="p">{</span>
+					<span class="k">if</span> <span class="n">attr</span><span class="o">.</span><span class="n">Key</span> <span class="o">==</span> <span class="s">"href"</span> <span class="p">{</span>
+						<span class="c">// Extract fixture information</span>
+						<span class="n">getFixtureInfo</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">Val</span><span class="p">)</span>
+					<span class="p">}</span>
+				<span class="p">}</span>
+			<span class="p">}</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="c">// Recursively process child nodes</span>
+	<span class="k">for</span> <span class="n">child</span> <span class="o">:=</span> <span class="n">node</span><span class="o">.</span><span class="n">FirstChild</span><span class="p">;</span> <span class="n">child</span> <span class="o">!=</span> <span class="no">nil</span><span class="p">;</span> <span class="n">child</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">NextSibling</span> <span class="p">{</span>
+		<span class="n">findAndPrintMatchCardContents</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">getFixtureInfo</span><span class="p">(</span><span class="n">fixturePath</span> <span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+	<span class="c">// Build the full URL</span>
+	<span class="n">link</span> <span class="o">:=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">`https://onefootball.com/%s`</span><span class="p">,</span> <span class="n">fixturePath</span><span class="p">)</span>
+	<span class="n">resp</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">http</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">link</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="n">log</span><span class="o">.</span><span class="n">Fatal</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">defer</span> <span class="n">resp</span><span class="o">.</span><span class="n">Body</span><span class="o">.</span><span class="n">Close</span><span class="p">()</span>
+
+	<span class="c">// Create a goquery document from the response body</span>
+	<span class="n">doc</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">goquery</span><span class="o">.</span><span class="n">NewDocumentFromReader</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">Body</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+		<span class="n">log</span><span class="o">.</span><span class="n">Fatal</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="k">var</span> <span class="n">date</span> <span class="p">[]</span><span class="kt">string</span>
+	<span class="k">var</span> <span class="n">teams</span> <span class="p">[]</span><span class="kt">string</span>
+
+	<span class="c">// Find and extract the match date</span>
+	<span class="n">doc</span><span class="o">.</span><span class="n">Find</span><span class="p">(</span><span class="s">".MatchScore_numeric__ke8YT"</span><span class="p">)</span><span class="o">.</span><span class="n">Each</span><span class="p">(</span><span class="k">func</span><span class="p">(</span><span class="n">i</span> <span class="kt">int</span><span class="p">,</span> <span class="n">s</span> <span class="o">*</span><span class="n">goquery</span><span class="o">.</span><span class="n">Selection</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">date</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">Text</span><span class="p">())</span>
+	<span class="p">})</span>
+
+	<span class="c">// Find and extract the team names</span>
+	<span class="n">doc</span><span class="o">.</span><span class="n">Find</span><span class="p">(</span><span class="s">".MatchScoreTeam_name__zzQrD"</span><span class="p">)</span><span class="o">.</span><span class="n">Each</span><span class="p">(</span><span class="k">func</span><span class="p">(</span><span class="n">i</span> <span class="kt">int</span><span class="p">,</span> <span class="n">s</span> <span class="o">*</span><span class="n">goquery</span><span class="o">.</span><span class="n">Selection</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">teams</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">teams</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">Text</span><span class="p">())</span>
+	<span class="p">})</span>
+
+	<span class="c">// Create a fixtureResult struct to store the extracted data</span>
+	<span class="n">fixture</span> <span class="o">:=</span> <span class="n">fixtureResult</span><span class="p">{</span>
+		<span class="n">teams</span><span class="o">:</span>     <span class="n">teams</span><span class="p">,</span>
+		<span class="n">matchDate</span><span class="o">:</span> <span class="n">date</span><span class="p">,</span>
+	<span class="p">}</span>
+
+	<span class="c">// Print the extracted fixture information</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"%+v</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">fixture</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="how-it-works">How It Works</h2>
+
+<p>Now, let’s break down how this Go program accomplishes its goal:</p>
+
+<ol>
+  <li>
+    <p><strong>Opening and Parsing HTML</strong>: The program starts by opening an HTML file named <code class="language-plaintext highlighter-rouge">2023-xxxx-fixtures.html</code>. It uses the <code class="language-plaintext highlighter-rouge">os</code> and <code class="language-plaintext highlighter-rouge">golang.org/x/net/html</code> packages to do this. The HTML content is loaded into a structured format for parsing.</p>
+  </li>
+  <li>
+    <p><strong>Searching for Match Cards</strong>: The <code class="language-plaintext highlighter-rouge">findAndPrintMatchCardContents</code> function is responsible for searching for specific HTML elements (<code class="language-plaintext highlighter-rouge">li</code>) with the class name <code class="language-plaintext highlighter-rouge">MatchCardsList_matchCard__DBsrE</code>. When a matching element is found, the program extracts the <code class="language-plaintext highlighter-rouge">href</code> attribute from the anchor element within that <code class="language-plaintext highlighter-rouge">li</code>. This <code class="language-plaintext highlighter-rouge">href</code> attribute contains a path to another web page with detailed fixture information.</p>
+  </li>
+  <li>
+    <p><strong>Fetching Detailed Fixture Information</strong>: The <code class="language-plaintext highlighter-rouge">getFixtureInfo</code> function constructs the full URL for the detailed fixture information, sends an HTTP GET request to that URL, and creates a <code class="language-plaintext highlighter-rouge">goquery</code> document from the response body. Using <code class="language-plaintext highlighter-rouge">goquery</code> simplifies HTML parsing and querying.</p>
+  </li>
+  <li>
+    <p><strong>Extracting Data</strong>: The program searches for HTML elements with class names <code class="language-plaintext highlighter-rouge">MatchScore_numeric__ke8YT</code> (which contains match dates) and <code class="language-plaintext highlighter-rouge">MatchScoreTeam_name__zzQrD</code> (which contains team names). It extracts this data and stores it in slices.</p>
+  </li>
+  <li>
+    <p><strong>Printing Results</strong>: Finally, the program creates a <code class="language-plaintext highlighter-rouge">fixtureResult</code> struct to store the extracted data and prints it in a structured format.</p>
+  </li>
+</ol>
+
+<h2 id="ways-to-improve">Ways to improve</h2>
+
+<p>A very powerful concept that is commonly used in golang is concurrency, currently my code retrieves data serially which can be slow depending on the volume of data. One way I can expand on this script is to retrieve fixture data using a group of workers dispatched in parallel.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>This Go program showcases how to perform web scraping and data extraction efficiently. By leveraging Go’s powerful packages like <code class="language-plaintext highlighter-rouge">github.com/PuerkitoBio/goquery</code>, we can parse HTML, navigate complex structures, and extract valuable information from websites. Web scraping is a versatile technique with applications in various domains, from data analysis to automation. I might end up using this data to create an iOS app or something who
+knows?!?!?!?! See ya next time!</p>]]></content><author><name>jmuru</name></author><category term="webscraping" /><category term="golang" /><category term="html" /><category term="web" /><category term="football" /><category term="soccer" /><category term="sports" /><category term="webdev" /><category term="scraping" /><category term="data" /><category term="sports" /><summary type="html"><![CDATA[In today’s data-driven world, information is often scattered across the web. Sometimes, we need to gather data from websites for various purposes, such as research, analysis, or automation. Go, a powerful programming language, provides us with the tools to perform web scraping and data extraction efficiently.]]></summary></entry><entry><title type="html">Premeditated Procrastination vs Willingly Ignorant: Are they the same?</title><link href="https://www.mindofguru.com/chatgpt/philosophy/2023/07/12/philosophyGPT.html" rel="alternate" type="text/html" title="Premeditated Procrastination vs Willingly Ignorant: Are they the same?" /><published>2023-07-12T00:00:00+00:00</published><updated>2023-07-12T00:00:00+00:00</updated><id>https://www.mindofguru.com/chatgpt/philosophy/2023/07/12/philosophyGPT</id><content type="html" xml:base="https://www.mindofguru.com/chatgpt/philosophy/2023/07/12/philosophyGPT.html"><![CDATA[<p>No, premeditated procrastination and willingly ignorant are not the same things, although they both involve a certain level of intention or choice.</p>
+
+<p>Premeditated procrastination refers to the deliberate act of delaying or postponing tasks or responsibilities, even though one knows that it may have negative consequences. It involves making a conscious decision to put off important activities for various reasons, such as a lack of motivation, fear of failure, or simply enjoying short-term gratification instead of focusing on long-term goals.</p>
+
+<p>On the other hand, willingly ignorant refers to a state of deliberately choosing to remain uninformed or disregarding available knowledge or information. It implies a conscious decision to avoid seeking or accepting information, often due to personal biases, preconceived notions, or a desire to maintain one’s existing beliefs or worldview.</p>
+
+<p>While both premeditated procrastination and willingly ignorant involve intentional actions, they are distinct concepts. Premeditated procrastination primarily deals with delaying tasks, while willingly ignorant pertains to deliberately avoiding information or knowledge.</p>
+
+<blockquote>
+  <p>What do you do when you bring up the philosophical equivalency of two statements into question during a work happy hour…. Ask a robot for the answer!</p>
+</blockquote>]]></content><author><name>jmuru</name></author><category term="chatGPT" /><category term="philosophy" /><category term="AI" /><summary type="html"><![CDATA[No, premeditated procrastination and willingly ignorant are not the same things, although they both involve a certain level of intention or choice.]]></summary></entry><entry><title type="html">The Elusive Viewport Scrolling Bug</title><link href="https://www.mindofguru.com/webdev/jekyll/front-end/programming/code/2023/07/10/the-bug.html" rel="alternate" type="text/html" title="The Elusive Viewport Scrolling Bug" /><published>2023-07-10T00:00:00+00:00</published><updated>2023-07-10T00:00:00+00:00</updated><id>https://www.mindofguru.com/webdev/jekyll/front-end/programming/code/2023/07/10/the-bug</id><content type="html" xml:base="https://www.mindofguru.com/webdev/jekyll/front-end/programming/code/2023/07/10/the-bug.html"><![CDATA[<h2 id="introduction">Introduction</h2>
+<p>Have you ever visited a website and experienced a strange scrolling behavior that seems to have a mind of its own? Well, 
+just like Kanye West’s unpredictable personality, some websites have their own version of a scrolling bug that can drive users crazy. 
+In this article, we’ll dive into the mysterious world of viewport scrolling bugs, exploring their causes, impact, and my own struggles with this very website.</p>
+
+<h2 id="unraveling-the-mystery">Unraveling the Mystery</h2>
+<p>The viewport scrolling bug is a pesky glitch that affects the scrolling functionality of a website. It manifests in various ways, such as jumpy or erratic scrolling, failure to scroll altogether, or sudden jumps to random positions on the page. This bug disrupts the user experience and can make navigating a website an infuriating ordeal.</p>
+
+<h2 id="causes-and-impact">Causes and Impact</h2>
+<p>Viewport scrolling bugs can occur due to a multitude of factors, including improper handling of touch events, conflicts between different scripts, or errors in CSS styles. These bugs are notorious for their elusiveness, as they often appear inconsistently and are challenging to reproduce consistently. Consequently, developers may find it difficult to pinpoint and fix the root cause of the problem.</p>
+
+<p>The impact of a viewport scrolling bug can be significant. It hampers user engagement and frustrates visitors, leading to increased bounce rates and decreased conversions. A bug-ridden website tarnishes a brand’s reputation and may drive potential customers away. In a world where user experience is paramount, resolving scrolling bugs becomes crucial for website owners.</p>
+
+<blockquote>
+  <p>Once upon a time, in the vast digital realm, a software engineer embarked on an epic battle against a formidable opponent: the viewport scrolling bug. Armed with lines of code and an unyielding determination, the engineer dove deep into the labyrinth of scripts and styles, seeking to vanquish the bug once and for all. But little did they know that this battle would become an unending saga, a relentless struggle between human ingenuity and the bug’s elusive nature. With each attempt to conquer the bug, it adapted, revealing new tricks and hiding deeper within the codebase. The engineer refused to surrender, fueled by the belief that victory was within reach. And so, the battle raged on, an eternal clash between the relentless engineer and the enigmatic viewport scrolling bug, a testament to the unwavering spirit of those who seek perfection in the digital realm.</p>
+</blockquote>
+
+<h2 id="taming-the-bug">Taming the Bug</h2>
+<p>To tackle viewport scrolling bugs, developers must embark on a journey of bug hunting, testing, and code optimization.
+Here are a few strategies that can help resolve these infuriating glitches:</p>
+
+<ol>
+  <li>
+    <p>Thorough testing: Rigorous testing across multiple devices, browsers, and platforms is essential to identify the specific scenarios in which the scrolling bug occurs.</p>
+  </li>
+  <li>
+    <p>Debugging tools: Utilize browser developer tools and JavaScript debuggers to track down and analyze the code responsible for the bug. These tools allow developers to inspect elements, monitor events, and isolate problematic code snippets.</p>
+  </li>
+  <li>
+    <p>Code optimization: Review and optimize CSS styles and JavaScript code to eliminate any conflicting or redundant rules that may trigger the scrolling bug.</p>
+  </li>
+  <li>
+    <p>Cross-browser compatibility: Ensure the website is compatible with different browsers and versions, as each browser may interpret scrolling behavior differently.</p>
+  </li>
+  <li>
+    <p>User feedback: Encourage users to report any scrolling issues they encounter, allowing developers to gather valuable information and reproduce the bug more effectively.</p>
+  </li>
+</ol>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>Like Kanye West’s music career, viewport scrolling bugs can be puzzling, unpredictable, and frustrating. In my case, all of the above actually but alas will come a day when it’s
+solved, and i can add another blog post here proclaiming my victory over my fated rival. For now tho, Piece Out!</p>
+
+<p>p.s. don’t view this site in any screen resolution greater than 2400px width plz and thank you! :)</p>]]></content><author><name>jmuru</name></author><category term="webdev" /><category term="jekyll" /><category term="front-end" /><category term="programming" /><category term="code" /><summary type="html"><![CDATA[Introduction Have you ever visited a website and experienced a strange scrolling behavior that seems to have a mind of its own? Well, just like Kanye West’s unpredictable personality, some websites have their own version of a scrolling bug that can drive users crazy. In this article, we’ll dive into the mysterious world of viewport scrolling bugs, exploring their causes, impact, and my own struggles with this very website.]]></summary></entry><entry><title type="html">Welcome!</title><link href="https://www.mindofguru.com/etc/2023/07/02/welcome.html" rel="alternate" type="text/html" title="Welcome!" /><published>2023-07-02T00:00:00+00:00</published><updated>2023-07-02T00:00:00+00:00</updated><id>https://www.mindofguru.com/etc/2023/07/02/welcome</id><content type="html" xml:base="https://www.mindofguru.com/etc/2023/07/02/welcome.html"><![CDATA[<p>Welcome to my blog! This is my first post woohoo! More coming soon!</p>]]></content><author><name>Jmuru</name></author><category term="etc" /><category term="welcome" /><category term="first" /><category term="intro" /><summary type="html"><![CDATA[Welcome to my blog! This is my first post woohoo! More coming soon!]]></summary></entry></feed>

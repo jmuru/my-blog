@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="google-translate-customization" content="108d9124921d80c3-80e20d618ff053c8-g4f02ec6f3dba68b7-c">
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Setting Up an AWS Lambda Triggered by API Gateway to Send Emails via SES | mindofguru</title>
+<meta name="generator" content="Jekyll v4.4.1">
+<meta property="og:title" content="Setting Up an AWS Lambda Triggered by API Gateway to Send Emails via SES">
+<meta name="author" content="jmuru">
+<meta property="og:locale" content="en_US">
+<meta name="description" content="In this blog post, we’ll walk through setting up an AWS Lambda function triggered by API Gateway that uses Amazon Simple Email Service (SES) to send emails. We’ll use Go to create the Lambda function, and our goal is to have the function fetch data from an external API and email the results. Let’s dive in!">
+<meta property="og:description" content="In this blog post, we’ll walk through setting up an AWS Lambda function triggered by API Gateway that uses Amazon Simple Email Service (SES) to send emails. We’ll use Go to create the Lambda function, and our goal is to have the function fetch data from an external API and email the results. Let’s dive in!">
+<link rel="canonical" href="https://www.mindofguru.com/code/aws/2024/05/21/aws-lambda-api-ses.html">
+<meta property="og:url" content="https://www.mindofguru.com/code/aws/2024/05/21/aws-lambda-api-ses.html">
+<meta property="og:site_name" content="mindofguru">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2024-05-21T00:00:00+00:00">
+<meta name="twitter:card" content="summary">
+<meta property="twitter:title" content="Setting Up an AWS Lambda Triggered by API Gateway to Send Emails via SES">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"jmuru"},"dateModified":"2024-05-21T00:00:00+00:00","datePublished":"2024-05-21T00:00:00+00:00","description":"In this blog post, we’ll walk through setting up an AWS Lambda function triggered by API Gateway that uses Amazon Simple Email Service (SES) to send emails. We’ll use Go to create the Lambda function, and our goal is to have the function fetch data from an external API and email the results. Let’s dive in!","headline":"Setting Up an AWS Lambda Triggered by API Gateway to Send Emails via SES","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.mindofguru.com/code/aws/2024/05/21/aws-lambda-api-ses.html"},"url":"https://www.mindofguru.com/code/aws/2024/05/21/aws-lambda-api-ses.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="icon" href="">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-noto-sans@0.0.72/index.min.css">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <script src="/assets/js/main.js"></script><link type="application/atom+xml" rel="alternate" href="https://www.mindofguru.com/feed.xml" title="mindofguru">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js"></script>
+<!-- and it's easy to individually load additional languages -->
+<script charset="UTF-8" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/languages/go.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+// Init highlight js
+document.addEventListener('DOMContentLoaded', function(event) {
+  var els = document.querySelectorAll('pre code')
+
+  function addLangData(block) {
+    var outer = block.parentElement.parentElement.parentElement;
+    var lang = block.getAttribute('data-lang');
+    for (var i = 0; i < outer.classList.length; i++) {
+      var cls = outer.classList[i];
+      if (cls.startsWith('language-')) {
+        lang = cls;
+        break;
+      }
+    }
+    if (!lang) {
+      cls = block.getAttribute('class');
+      lang = cls ? cls.replace('hljs ', '') : '';
+    }
+    if (lang.startsWith('language-')) {
+      lang = lang.substr(9);
+    }
+    block.setAttribute('class', 'hljs ' + lang);
+    block.parentNode.setAttribute('data-lang', lang);
+  }
+
+  function addBadge(block) {
+    var enabled = ('true' || 'true').toLowerCase();
+    if (enabled == 'true') {
+      var pre = block.parentElement;
+      pre.classList.add('badge');
+    }
+  }
+
+  function handle(block) {
+    addLangData(block);
+    addBadge(block)
+    hljs.highlightBlock(block);
+  }
+
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    handle(el);
+  }
+});
+</script>
+
+<style>
+  /* code language badge */
+  pre.badge::before {
+    content: attr(data-lang);
+    color: #fff;
+    background-color: #ff4e00;
+    padding: 0 .5em;
+    border-radius: 0 2px;
+    text-transform: uppercase;
+    text-align: center;
+    min-width: 32px;
+    display: inline-block;
+    position: absolute;
+    right: 0;
+  }
+
+  /* fix wrong badge display for firefox browser */
+  code > table pre::before {
+    display: none;
+  }
+</style>
+<script src="//cdnjs.cloudflare.com/ajax/libs/photoswipe/5.3.7/umd/photoswipe-lightbox.umd.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/photoswipe/5.3.7/umd/photoswipe.umd.min.js"></script>
+<link href="//cdnjs.cloudflare.com/ajax/libs/photoswipe/5.3.7/photoswipe.min.css" rel="stylesheet">
+<style>
+  .pswp .pswp__container .pswp__img {
+    background-color: white;
+  }
+</style>
+
+<script>
+  function initPhotoSwipe() {
+    let customOptions = {};
+
+    try {
+      const data = ``.replaceAll("=>", ":");
+      customOptions = JSON.parse(data);
+    } catch (e) {
+      console.error("Invalid custom photo previewer options! " + e.message);
+    }
+
+    // Define object and gallery options
+    const options = Object.assign(
+      {
+        gallery: "section.main",
+        children: "a.photo-swipe",
+        photo_scale: 2,
+        // dynamic import is not supported in UMD version
+        pswpModule: PhotoSwipe,
+      },
+      customOptions
+    );
+
+    const galleryEl = document.querySelector(options.gallery);
+    if (!galleryEl) {
+      return;
+    }
+
+    const imgEls = [];
+    const els = galleryEl.querySelectorAll("img:not(.emoji)");
+    els.forEach((el) => {
+      if (!imgEls.includes(el)) {
+        imgEls.push(el);
+      }
+    });
+
+    if (imgEls.length === 0) {
+      return;
+    }
+
+    imgEls.forEach((imgEl) => {
+      imgEl.outerHTML = `
+      <a class="photo-swipe"
+        href="${imgEl.src}"
+        data-pswp-width="${
+          Math.max(imgEl.naturalWidth, imgEl.width) * options.photo_scale
+        }"
+        data-pswp-height="${
+          Math.max(imgEl.naturalHeight, imgEl.height) * options.photo_scale
+        }"
+        data-pswp-caption="${imgEl.getAttribute("caption") || imgEl.alt}"
+        target="_blank">
+        ${imgEl.outerHTML}
+      </a>`;
+    });
+
+    // Initialize PhotoSwipe 5
+    var lightbox = new PhotoSwipeLightbox(options);
+
+    lightbox.init();
+  }
+
+  window.addEventListener("load", initPhotoSwipe);
+</script>
+</head>
+<body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<header class="site-header " role="banner">
+
+  <div class="wrapper">
+    <div class="site-header-inner">
+<span class="site-brand"><a class="site-brand-inner" rel="author" href="/">
+  <img class="site-favicon" title="mindofguru" src="" onerror="this.style.display='none'">
+  mindofguru
+</a>
+</span><nav class="site-nav">
+          <input type="checkbox" id="nav-trigger" class="nav-trigger">
+          <label for="nav-trigger">
+            <span class="menu-icon">
+              <svg viewbox="0 0 18 15" width="18px" height="15px">
+                <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"></path>
+              </svg>
+            </span>
+          </label>
+
+          <div class="trigger">
+<a class="page-link" href="/about.html">ABOUT</a><a class="page-link" href="/archives.html">ARCHIVES</a><a class="page-link" href="/categories.html">CATEGORIES</a><a class="page-link" href="/tags.html">TAGS</a>
+
+
+
+
+
+
+
+
+
+<span class="page-link">
+
+
+
+<div id="google_translate_element" style="display: none;">
+</div>
+
+<span class="ct-language">
+  <ul class="list-unstyled ct-language-dropdown">
+    
+      <li>
+        <a href="#" class="lang-select" data-lang="en">
+          
+          <img src="https://cdn.countryflags.com/thumbs/united-states-of-america/flag-400.png" title="English">
+          
+        </a>
+      </li>
+    
+      <li>
+        <a href="#" class="lang-select" data-lang="fr">
+          
+          <img src="https://cdn.countryflags.com/thumbs/france/flag-400.png" title="French">
+          
+        </a>
+      </li>
+    
+      <li>
+        <a href="#" class="lang-select" data-lang="zh-CN">
+          
+          <img src="https://cdn.countryflags.com/thumbs/china/flag-400.png" title="Chinese(Simple)">
+          
+        </a>
+      </li>
+    
+      <li>
+        <a href="#" class="lang-select" data-lang="ja">
+          
+          <img src="https://cdn.countryflags.com/thumbs/japan/flag-400.png" title="Japanese">
+          
+        </a>
+      </li>
+    
+      <li>
+        <a href="#" class="lang-select" data-lang="ko">
+          
+          <img src="https://cdn.countryflags.com/thumbs/south-korea/flag-400.png" title="Korean">
+          
+        </a>
+      </li>
+    
+      <li>
+        <a href="#" class="lang-select" data-lang="ru">
+          
+          <img src="https://cdn.countryflags.com/thumbs/russia/flag-400.png" title="Russian">
+          
+        </a>
+      </li>
+    
+  </ul>
+</span>
+
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'en',
+    autoDisplay: false,
+    layout: google.translate.TranslateElement.InlineLayout.VERTICAL
+  }, 'google_translate_element');
+
+  // Links to cross-origin destinations are unsafe
+  var gll = document.getElementsByClassName('goog-logo-link')[0];
+  if (gll) {
+    gll.setAttribute('rel', 'noopener');
+  }
+
+  function restoreLang() {
+    var iframe = document.getElementsByClassName('goog-te-banner-frame')[0];
+    if (!iframe) return;
+
+    var innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+    var restore_el = innerDoc.getElementsByTagName("button");
+
+    for (var i = 0; i < restore_el.length; i++) {
+      if (restore_el[i].id.indexOf("restore") >= 0) {
+        restore_el[i].click();
+        var close_el = innerDoc.getElementsByClassName("goog-close-link");
+        close_el[0].click();
+        return;
+      }
+    }
+  }
+
+  function triggerHtmlEvent(element, eventName) {
+    var event;
+    if (document.createEvent) {
+      event = document.createEvent('HTMLEvents');
+      event.initEvent(eventName, true, true);
+      element.dispatchEvent(event);
+    } else {
+      event = document.createEventObject();
+      event.eventType = eventName;
+      element.fireEvent('on' + event.eventType, event);
+    }
+  }
+
+  var googleCombo = document.querySelector("select.goog-te-combo");
+  var langSelect = document.querySelector('.ct-language');
+  langSelect.addEventListener('click', function(event) {
+    if (!event.target) {
+      return;
+    }
+
+    var selected = document.querySelector('.ct-language .ct-language-selected');
+    if (selected) {
+      selected.classList.remove('ct-language-selected');
+    }
+
+    var target = event.target;
+    while (target && target !== langSelect ) {
+      if (target.matches('.lang-select')) {
+        break;
+      }
+      target = target.parentElement;
+    }
+
+    if (target && target.matches('.lang-select')) {
+      var lang = target.getAttribute('data-lang');
+      if (googleCombo.value == lang) {
+        restoreLang();
+      } else {
+        target.parentElement.classList.add('ct-language-selected');
+        googleCombo.value = lang;
+        triggerHtmlEvent(googleCombo, 'change');
+      }
+    }
+
+    event.preventDefault();
+  });
+}
+</script>
+
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</span>
+</div>
+        </nav>
+</div>
+  </div>
+</header>
+
+<script>
+  function initHeader() {
+    var lastScrollY = getScrollPos().y;
+    var documentElement = document.documentElement;
+
+    function storeScrollData() {
+      var y = getScrollPos().y;var scrollStatus = "";
+
+      if (y <= 0) {
+        scrollStatus = "top";
+      } else if ((window.innerHeight + y) >= document.body.offsetHeight) {
+        scrollStatus = "bottom";
+      } else {
+        var isScrollDown = (y - lastScrollY > 0) ? true : false;
+        scrollStatus = isScrollDown ? "down" : "up";
+      }
+
+      lastScrollY = y;
+      documentElement.setAttribute("data-scroll-status", scrollStatus);
+    }
+
+    window.addEventListener('scroll', function(e) {
+      storeScrollData();
+    });
+
+    storeScrollData();
+  }
+  document.addEventListener('DOMContentLoaded', initHeader);
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+  function hashLocate(hashValue) {
+    hashValue = hashValue.replace(/^.*#h-/, '');
+    hashValue = decodeURIComponent(hashValue);
+    var element = document.getElementById(hashValue);
+
+    if (!element) {
+      return;
+    }
+
+    var header = document.querySelector('header.site-header');
+    var headerRect = header.getBoundingClientRect();
+    var headerTop = Math.floor(headerRect.top);
+    var headerHeight = Math.floor(headerRect.height);
+    var scrollPos = getScrollPos();
+    var offsetY = element.offsetTop - (headerTop + headerHeight + 20);
+
+    if (offsetY == scrollPos.y) {
+      return;
+    }
+
+    if (headerTop == 0  && offsetY > scrollPos.y) {
+      offsetY += headerHeight + 2;
+    } else if (headerTop < 0  && offsetY < scrollPos.y) {
+      offsetY -= headerHeight - 2;
+    }
+
+    smoothScrollTo(offsetY);
+  }
+
+  // The first event occurred
+  window.addEventListener('load', function(event) {
+    if (window.location.hash) {
+      hashLocate(window.location.hash);
+    }
+  });
+
+  // The first event occurred
+  window.addEventListener('click', function(event) {
+    if (event.target.tagName.toLowerCase() == 'a') {
+      hashLocate(event.target.getAttribute('href'));
+    }
+  });
+</script>
+<div class="theme-toggle">
+  <input type="checkbox" id="theme-switch">
+  <label for="theme-switch">
+    <div class="toggle"></div>
+    <div class="names">
+      <p class="light">Light</p>
+      <p class="dark">Dark</p>
+    </div>
+  </label>
+</div>
+
+
+
+
+<script>
+  (function() {
+    var sw = document.getElementById('theme-switch');
+    var html = document.getElementsByTagName('html')[0];
+    var nightModeOption = ('auto' || 'auto').toLowerCase();
+    var storage = nightModeOption === 'manual'
+        ? localStorage
+        : sessionStorage;
+    var themeData = loadThemeData();
+
+    function saveThemeData(data) {
+      storage.setItem('theme', JSON.stringify(data));
+    }
+
+    function loadThemeData() {
+      var data = storage.getItem('theme');
+      try {
+        data = JSON.parse(data ? data : '');
+      } catch(e) {
+        data = { nightShift: undefined, autoToggleAt: 0 };
+        saveThemeData(data);
+      }
+      return data;
+    }
+
+    function handleThemeToggle(nightShift) {
+      themeData.nightShift = nightShift;
+      saveThemeData(themeData);
+      html.dataset.theme = nightShift ? 'dark' : 'light';
+      setTimeout(function() {
+        sw.checked = nightShift ? true : false;
+      }, 50);
+    }
+
+    function autoThemeToggle() {
+      // Next time point of theme toggle
+      var now = new Date();
+      var toggleAt = new Date();
+      var hours = now.getHours();
+      var nightShift = hours >= 19 || hours <=7;
+
+      if (nightShift) {
+        if (hours > 7) {
+          toggleAt.setDate(toggleAt.getDate() + 1);
+        }
+        toggleAt.setHours(7);
+      } else {
+        toggleAt.setHours(19);
+      }
+
+      toggleAt.setMinutes(0);
+      toggleAt.setSeconds(0);
+      toggleAt.setMilliseconds(0)
+
+      var delay = toggleAt.getTime() - now.getTime();
+
+      // auto toggle theme mode
+      setTimeout(function() {
+        handleThemeToggle(!nightShift);
+      }, delay);
+
+      return {
+        nightShift: nightShift,
+        toggleAt: toggleAt.getTime()
+      };
+    }
+
+    // Listen the theme toggle event
+    sw.addEventListener('change', function(event) {
+      handleThemeToggle(event.target.checked);
+    });
+
+    if (nightModeOption == 'auto') {
+      var data = autoThemeToggle();
+
+      // Toggle theme by local setting
+      if (data.toggleAt > themeData.autoToggleAt) {
+        themeData.autoToggleAt = data.toggleAt;
+        handleThemeToggle(data.nightShift);
+      } else {
+        handleThemeToggle(themeData.nightShift);
+      }
+    } else if (nightModeOption == 'manual') {
+      handleThemeToggle(themeData.nightShift);
+    } else {
+      var nightShift = themeData.nightShift;
+      if (nightShift === undefined) {
+        nightShift = nightModeOption === 'on';
+      }
+      handleThemeToggle(nightShift);
+    }
+  })();
+</script>
+<div id="click-to-top" class="click-to-top">
+  <i class="fa fa-arrow-up"></i>
+</div>
+<script>
+  (function () {
+    const clickToTop = document.getElementById('click-to-top');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 100) {
+        clickToTop.classList.add('show')
+      }else {
+        clickToTop.classList.remove('show')
+      }
+    });
+    clickToTop.addEventListener('click', () => {
+      window.smoothScrollTo(0);
+    });
+  })();
+</script>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <div class="framework">
+  <section class="main">
+
+     <div class="post">
+  <section>
+
+
+
+
+
+
+
+
+
+<header class="post-header">
+  <h1 class="post-title p-name" itemprop="name headline">Setting Up an AWS Lambda Triggered by API Gateway to Send Emails via SES</h1>
+  <h2 class="post-subtitle"></h2>
+
+  <p class="post-meta">
+    <time class="dt-published" datetime="2024-05-21T00:00:00+00:00" itemprop="datePublished"><i class="fa fa-calendar"></i> May 21, 2024
+    </time>
+
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <span class="post-reading-time left-vsplit"><i class="fa fa-clock-o"></i> About 7 mins</span>
+  </p></header>
+<article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+    <div class="post-content e-content" itemprop="articleBody">
+
+      <p>In this blog post, we’ll walk through setting up an AWS Lambda function triggered by API Gateway that uses Amazon Simple Email Service (SES) to send emails. We’ll use Go to create the Lambda function, and our goal is to have the function fetch data from an external API and email the results. Let’s dive in!</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>Before we start, make sure you have the following:</p>
+<ul>
+  <li>An AWS account</li>
+  <li>AWS CLI configured</li>
+  <li>Go installed on your local machine</li>
+  <li>Basic knowledge of AWS Lambda, API Gateway, and SES</li>
+</ul>
+
+<h2 id="step-1-setting-up-ses">Step 1: Setting Up SES</h2>
+
+<p>First, you need to verify an email address with SES to use as the sender.</p>
+
+<ol>
+  <li>Go to the SES console.</li>
+  <li>In the left-hand navigation pane, choose <strong>Verified Identities</strong>.</li>
+  <li>Choose <strong>Create Identity</strong>.</li>
+  <li>Follow the prompts to verify an email address.</li>
+</ol>
+
+<h2 id="step-2-writing-the-lambda-function">Step 2: Writing the Lambda Function</h2>
+
+<p>Here’s the Go code for the Lambda function:</p>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="p">(</span>
+    <span class="s">"context"</span>
+    <span class="s">"encoding/json"</span>
+    <span class="s">"fmt"</span>
+    <span class="s">"net/http"</span>
+    <span class="s">"os"</span>
+    <span class="s">"time"</span>
+
+    <span class="s">"github.com/aws/aws-lambda-go/lambda"</span>
+    <span class="s">"github.com/aws/aws-sdk-go/aws"</span>
+    <span class="s">"github.com/aws/aws-sdk-go/aws/session"</span>
+    <span class="s">"github.com/aws/aws-sdk-go/service/ses"</span>
+<span class="p">)</span>
+
+<span class="k">type</span> <span class="n">EndpointList</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">Endpoints</span>   <span class="p">[]</span><span class="n">Endpoint</span> <span class="s">`json:"endpoints"`</span>
+    <span class="n">URI</span>         <span class="kt">string</span>     <span class="s">`json:"uri"`</span>
+    <span class="n">NextPageURI</span> <span class="kt">string</span>     <span class="s">`json:"next_page_uri"`</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Endpoint</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">ID</span>        <span class="kt">string</span>    <span class="s">`json:"id"`</span>
+    <span class="n">CreatedAt</span> <span class="n">time</span><span class="o">.</span><span class="n">Time</span> <span class="s">`json:"created_at"`</span>
+    <span class="n">UpdatedAt</span> <span class="n">time</span><span class="o">.</span><span class="n">Time</span> <span class="s">`json:"updated_at"`</span>
+    <span class="n">PublicURL</span> <span class="kt">string</span>    <span class="s">`json:"public_url"`</span>
+    <span class="n">Proto</span>     <span class="kt">string</span>    <span class="s">`json:"proto"`</span>
+    <span class="n">HostPort</span>  <span class="kt">string</span>    <span class="s">`json:"hostport"`</span>
+    <span class="n">Type</span>      <span class="kt">string</span>    <span class="s">`json:"type"`</span>
+    <span class="n">Tunnel</span>    <span class="n">Tunnel</span>    <span class="s">`json:"tunnel"`</span>
+<span class="p">}</span>
+
+<span class="k">type</span> <span class="n">Tunnel</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">ID</span>  <span class="kt">string</span> <span class="s">`json:"id"`</span>
+    <span class="n">URI</span> <span class="kt">string</span> <span class="s">`json:"uri"`</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">handler</span><span class="p">(</span><span class="n">ctx</span> <span class="n">context</span><span class="o">.</span><span class="n">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="n">apiKey</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Getenv</span><span class="p">(</span><span class="s">"API_KEY"</span><span class="p">)</span>
+    <span class="n">client</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">http</span><span class="o">.</span><span class="n">Client</span><span class="p">{}</span>
+
+    <span class="n">req</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">http</span><span class="o">.</span><span class="n">NewRequest</span><span class="p">(</span><span class="s">"GET"</span><span class="p">,</span> <span class="s">"https://api.ngrok.com/endpoints"</span><span class="p">,</span> <span class="no">nil</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">err</span>
+    <span class="p">}</span>
+    <span class="n">req</span><span class="o">.</span><span class="n">Header</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="s">"Authorization"</span><span class="p">,</span> <span class="s">"Bearer "</span><span class="o">+</span><span class="n">apiKey</span><span class="p">)</span>
+    <span class="n">req</span><span class="o">.</span><span class="n">Header</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="s">"Ngrok-Version"</span><span class="p">,</span> <span class="s">"2"</span><span class="p">)</span>
+
+    <span class="n">resp</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">client</span><span class="o">.</span><span class="n">Do</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">err</span>
+    <span class="p">}</span>
+    <span class="k">defer</span> <span class="n">resp</span><span class="o">.</span><span class="n">Body</span><span class="o">.</span><span class="n">Close</span><span class="p">()</span>
+
+    <span class="k">var</span> <span class="n">endpointList</span> <span class="n">EndpointList</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">NewDecoder</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">Body</span><span class="p">)</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="o">&amp;</span><span class="n">endpointList</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">err</span>
+    <span class="p">}</span>
+
+    <span class="n">publicURLs</span> <span class="o">:=</span> <span class="s">""</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">endpoint</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">endpointList</span><span class="o">.</span><span class="n">Endpoints</span> <span class="p">{</span>
+        <span class="n">publicURLs</span> <span class="o">+=</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">"Public URL: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">PublicURL</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">sendEmail</span><span class="p">(</span><span class="n">publicURLs</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">sendEmail</span><span class="p">(</span><span class="n">publicURLs</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="n">region</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Getenv</span><span class="p">(</span><span class="s">"REGION"</span><span class="p">)</span>
+    <span class="n">sender</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Getenv</span><span class="p">(</span><span class="s">"SENDER"</span><span class="p">)</span>
+    <span class="n">recipient</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">Getenv</span><span class="p">(</span><span class="s">"RECIPIENT"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">region</span> <span class="o">==</span> <span class="s">""</span> <span class="o">||</span> <span class="n">sender</span> <span class="o">==</span> <span class="s">""</span> <span class="o">||</span> <span class="n">recipient</span> <span class="o">==</span> <span class="s">""</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"AWS_REGION, SENDER_EMAIL, or RECIPIENT_EMAIL environment variable is not set"</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">sess</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">session</span><span class="o">.</span><span class="n">NewSession</span><span class="p">(</span><span class="o">&amp;</span><span class="n">aws</span><span class="o">.</span><span class="n">Config</span><span class="p">{</span>
+        <span class="n">Region</span><span class="o">:</span> <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">region</span><span class="p">),</span>
+    <span class="p">})</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"Error creating AWS session: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">svc</span> <span class="o">:=</span> <span class="n">ses</span><span class="o">.</span><span class="n">New</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+
+    <span class="n">input</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">SendEmailInput</span><span class="p">{</span>
+        <span class="n">Destination</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Destination</span><span class="p">{</span>
+            <span class="n">ToAddresses</span><span class="o">:</span> <span class="p">[]</span><span class="o">*</span><span class="kt">string</span><span class="p">{</span>
+                <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">recipient</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="n">Message</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Message</span><span class="p">{</span>
+            <span class="n">Body</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Body</span><span class="p">{</span>
+                <span class="n">Text</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Content</span><span class="p">{</span>
+                    <span class="n">Charset</span><span class="o">:</span> <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="s">"UTF-8"</span><span class="p">),</span>
+                    <span class="n">Data</span><span class="o">:</span>    <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">publicURLs</span><span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">},</span>
+            <span class="n">Subject</span><span class="o">:</span> <span class="o">&amp;</span><span class="n">ses</span><span class="o">.</span><span class="n">Content</span><span class="p">{</span>
+                <span class="n">Charset</span><span class="o">:</span> <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="s">"UTF-8"</span><span class="p">),</span>
+                <span class="n">Data</span><span class="o">:</span>    <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="s">"Ngrok Public URLs"</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="n">Source</span><span class="o">:</span> <span class="n">aws</span><span class="o">.</span><span class="n">String</span><span class="p">(</span><span class="n">sender</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">svc</span><span class="o">.</span><span class="n">SendEmail</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="no">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Errorf</span><span class="p">(</span><span class="s">"Error sending email: %v"</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="no">nil</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">lambda</span><span class="o">.</span><span class="n">Start</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This script does the following:</p>
+<ol>
+  <li>Fetches the list of endpoints from Ngrok.</li>
+  <li>Parses the JSON response to extract public URLs.</li>
+  <li>Sends an email with the public URLs using SES.</li>
+</ol>
+
+<h2 id="step-3-setting-up-environment-variables">Step 3: Setting Up Environment Variables</h2>
+
+<p>Ensure the following environment variables are set:</p>
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">API_KEY</code>: Your Ngrok API key.</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">REGION</code>: Your AWS region (e.g., <code class="language-plaintext highlighter-rouge">us-west-2</code>).</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">SENDER</code>: The verified sender email address.</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">RECIPIENT</code>: The recipient email address.</li>
+</ul>
+
+<h2 id="step-4-deploying-the-lambda-function">Step 4: Deploying the Lambda Function</h2>
+
+<ol>
+  <li>
+<strong>Create a deployment package:</strong>
+    <div class="language-sh highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code> <span class="nv">GOOS</span><span class="o">=</span>linux <span class="nv">GOARCH</span><span class="o">=</span>amd64 go build <span class="nt">-o</span> main main.go
+ zip deployment.zip main
+</code></pre></div>    </div>
+  </li>
+  <li>
+<strong>Create a Lambda function:</strong>
+    <div class="language-sh highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code> aws lambda create-function <span class="nt">--function-name</span> SendNgrokEndpoints <span class="se">\</span>
+ <span class="nt">--zip-file</span> fileb://deployment.zip <span class="nt">--handler</span> main <span class="se">\</span>
+ <span class="nt">--runtime</span> go1.x <span class="nt">--role</span> arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_LAMBDA_ROLE
+</code></pre></div>    </div>
+  </li>
+  <li>
+<strong>Set environment variables for the Lambda function:</strong>
+    <div class="language-sh highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code> aws lambda update-function-configuration <span class="nt">--function-name</span> SendNgrokEndpoints <span class="se">\</span>
+ <span class="nt">--environment</span> <span class="nv">Variables</span><span class="o">=</span><span class="s2">"{API_KEY=your_api_key,REGION=your_region,SENDER=your_sender_email,RECIPIENT=your_recipient_email}"</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h2 id="step-5-setting-up-api-gateway">Step 5: Setting Up API Gateway</h2>
+
+<ol>
+  <li>
+<strong>Create an API:</strong>
+    <ul>
+      <li>Go to the API Gateway console.</li>
+      <li>Choose <strong>Create API</strong> and follow the prompts.</li>
+    </ul>
+  </li>
+  <li>
+<strong>Create a resource and method:</strong>
+    <ul>
+      <li>Create a new resource.</li>
+      <li>Add a <strong>POST</strong> method.</li>
+      <li>Integrate the method with your Lambda function.</li>
+    </ul>
+  </li>
+  <li>
+<strong>Deploy the API:</strong>
+    <ul>
+      <li>Create a new stage and deploy your API.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="step-6-testing-the-setup">Step 6: Testing the Setup</h2>
+
+<p>You can test the setup by triggering the API endpoint through tools like Postman or CURL. If everything is configured correctly, you should receive an email with the Ngrok public URLs.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-X</span> POST https://your-api-id.execute-api.your-region.amazonaws.com/your-stage/your-resource
+</code></pre></div></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>You’ve successfully set up an AWS Lambda function triggered by API Gateway to send emails using SES. This setup is powerful for automating notifications and alerts based on external data. Feel free to customize the function to suit your needs.</p>
+
+<p>Happy coding!</p>
+
+
+    </div>
+
+</article>
+<div class="post-nav">
+<a class="previous" href="/webscraping/golang/html/web/football/soccer/sports/2023/09/01/futty-scraper.html" title="Football Fixture Scraper Concept">Football Fixture Scraper Concept</a><a class="next" href="/video/ai/crawlai/2025/03/21/crawl4ai.html" title="LLM-Powered Web Content Extraction with crawlAI">LLM-Powered Web Content Extraction with crawlAI...</a>
+</div>
+<div class="post-related">
+      <div>Related Articles</div>
+      <ul>
+        <li><a class="post-link" href="/chatgpt/philosophy/2023/07/12/philosophyGPT.html" title="LLM-Powered Web Content Extraction with crawlAI">Premeditated Procrastination vs Willingly Ignorant: Are they the same?</a></li>
+<li><a class="post-link" href="/webdev/jekyll/front-end/programming/code/2023/07/10/the-bug.html" title="LLM-Powered Web Content Extraction with crawlAI">The Elusive Viewport Scrolling Bug</a></li>
+<li><a class="post-link" href="/etc/2023/07/02/welcome.html" title="LLM-Powered Web Content Extraction with crawlAI">Welcome!</a></li>
+<li><a class="post-link" href="/code/aws/2024/05/21/aws-lambda-api-ses.html" title="LLM-Powered Web Content Extraction with crawlAI">Setting Up an AWS Lambda Triggered by API Gateway to Send Emails...</a></li>
+</ul>
+    </div>
+<div class="post-comments"></div></section>
+</div>
+
+
+  </section>
+  <section class="sidebar" style="margin-left: 15px;">
+    <!-- Get sidebar items --><style type="text/css" media="screen">
+.post-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+</style>
+
+<div class="post-menu">
+  <div class="post-menu-title">TOC</div>
+  <div class="post-menu-content"></div>
+</div>
+
+<script>
+  function generateContent() {
+    var menu = document.querySelector(".post-menu");
+    var menuContent =  menu.querySelector(".post-menu-content");
+    var headings = document.querySelector(".post-content").querySelectorAll("h2, h3, h4, h5, h6");
+
+    // Hide menu when no headings
+    if (headings.length === 0) {
+      return menu.style.display = "none";
+    }
+
+    // Generate post menu
+    var menuHTML = '';
+    for (var i = 0; i < headings.length; i++) {
+      var h = headings[i];
+      menuHTML += (
+        '<li class="h-' + h.tagName.toLowerCase() + '">'
+        + '<a href="#h-' + h.getAttribute('id') + '">' + h.textContent + '</a></li>');
+    }
+
+    menuContent.innerHTML = '<ul>' + menuHTML + '</ul>';
+
+    // The header element
+    var header = document.querySelector('header.site-header');
+
+    function doMenuCollapse(index, over_items) {
+      var items = menuContent.firstChild.children;
+
+      if (over_items == undefined) {
+        over_items = 20;
+      }
+
+      if (items.length < over_items) {
+        return;
+      }
+
+      var activeItem = items[index];
+      var beginItem = activeItem
+      var endItem = activeItem
+      var beginIndex = index;
+      var endIndex = index + 1;
+      while (beginIndex >= 0
+        && !items[beginIndex].classList.contains('h-h2')) {
+        beginIndex -= 1;
+      }
+      while (endIndex < items.length
+        && !items[endIndex].classList.contains('h-h2')) {
+        endIndex += 1;
+      }
+      for (var i = 0; i < beginIndex; i++) {
+        item = items[i]
+        if (!item.classList.contains('h-h2')) {
+          item.style.display = 'none';
+        }
+      }
+      for (var i = beginIndex + 1; i < endIndex; i++) {
+        item = items[i]
+        // if (!item.classList.contains('h-h2')) {
+          item.style.display = '';
+        // }
+      }
+      for (var i = endIndex; i < items.length; i++) {
+        item = items[i]
+        if (!item.classList.contains('h-h2')) {
+          item.style.display = 'none';
+        }
+      }
+    }
+
+    // Init menu collapsed
+    doMenuCollapse(-1);
+
+    // Active the menu item
+    window.addEventListener('scroll', function (event) {
+      var lastActive = menuContent.querySelector('.active');
+      var changed = true;
+      var activeIndex = -1;
+      for (var i = headings.length - 1; i >= 0; i--) {
+        var h = headings[i];
+        var headingRect = h.getBoundingClientRect();
+        var headerRect = header.getBoundingClientRect();
+        var headerTop = Math.floor(headerRect.top);
+        var headerHeight = Math.floor(headerRect.height);
+        var headerHeight = headerTop + headerHeight + 20;
+        if (headingRect.top <= headerHeight) {
+          var id = 'h-' + h.getAttribute('id');
+          var a = menuContent.querySelector('a[href="#' + id  + '"]');
+          var curActive = a.parentNode;
+          if (curActive) {
+            curActive.classList.add('active');
+            activeIndex = i;
+          }
+          if (lastActive == curActive) {
+            changed = false;
+          }
+          break;
+        }
+      }
+      if (changed) {
+        if (lastActive) {
+          lastActive.classList.remove('active');
+        }
+        doMenuCollapse(activeIndex);
+      }
+      event.preventDefault();
+    });
+  }
+  generateContent();
+</script>
+</section>
+</div>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+    <div class="site-footer-inner">
+<div>Unpublished Work <span class="copyleft">©</span> 2017-2025 jmuru</div>
+      <div>Powered by <a title="Jekyll is a simple, blog-aware, static site
+      generator." href="https://jekyllrb.com/">Jekyll</a> &amp; <a title="Yat, yet
+      another theme." href="https://github.com/jeffreytse/jekyll-theme-yat">Yat Theme</a>.</div>
+      <div class="footer-col rss-subscribe">Subscribe <a href="/feed.xml">via RSS</a>
+</div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
