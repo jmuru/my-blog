@@ -1,4 +1,21 @@
 <head>
+  <script>
+    (function() {
+      try {
+        var opt = ('{{ site.night_mode | default: "auto" }}' || 'auto').toLowerCase();
+        var store = opt === 'manual' ? localStorage : sessionStorage;
+        var data = JSON.parse(store.getItem('theme') || '{}');
+        if (data.nightShift !== undefined) {
+          document.documentElement.setAttribute('data-theme', data.nightShift ? 'dark' : 'light');
+        } else if (opt === 'auto') {
+          var h = new Date().getHours();
+          document.documentElement.setAttribute('data-theme', (h >= 19 || h <= 7) ? 'dark' : 'light');
+        } else if (opt === 'on') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch(e) {}
+    })();
+  </script>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">

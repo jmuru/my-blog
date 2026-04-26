@@ -575,7 +575,7 @@ html {
   position: relative;
   height: $banner-height;
   background-color: $banner-background;
-  transition: height 0.2s;
+  transition: height 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 
   .page-banner-img {
     position: absolute;
