@@ -1,0 +1,297 @@
+// Search trigger button in the desktop nav
+.site-nav .search-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 24px;
+  color: $header-text-color;
+  line-height: $base-line-height;
+  vertical-align: middle;
+  display: inline-block;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.7;
+  }
+
+  svg {
+    display: block;
+  }
+
+  // Mobile: hamburger intercepts open via JS; keep button hidden to avoid confusion
+  @include media-query($on-laptop) {
+    display: none;
+  }
+}
+
+// When header is transparent at page top, make icon white
+html[data-scroll-status='top'] header.site-header-transparent .site-nav .search-trigger {
+  color: #fff;
+}
+
+// Dark mode
+html[data-theme="dark"] .site-nav .search-trigger {
+  color: #f8f8f8;
+}
+
+
+// ─── Overlay ──────────────────────────────────────────────────────────────────
+
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  // Ensure scrollable on very small/short viewports
+  overflow-y: auto;
+
+  &.is-open {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+.nav-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  cursor: pointer;
+}
+
+.nav-overlay-panel {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  padding: ($spacing-unit * 1.5) $spacing-unit ($spacing-unit * 2);
+  margin-top: $header-height + 20px;
+  transform: translateY(-10px);
+  transition: transform 0.25s ease;
+
+  .nav-overlay.is-open & {
+    transform: translateY(0);
+  }
+
+  @include media-query($on-palm) {
+    padding: $spacing-unit ($spacing-unit * 0.75);
+    margin-top: $header-height;
+  }
+}
+
+.nav-overlay-close {
+  position: absolute;
+  top: 0;
+  right: $spacing-unit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background-color 0.15s;
+  z-index: 1;
+
+  &:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  @include media-query($on-palm) {
+    right: $spacing-unit * 0.75;
+  }
+}
+
+
+// ─── Search box ───────────────────────────────────────────────────────────────
+
+.nav-overlay-search-section {
+  margin-top: $spacing-unit * 2;
+
+  @include media-query($on-palm) {
+    margin-top: $spacing-unit * 1.5;
+  }
+}
+
+.nav-overlay-search-box {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  padding: 0 16px;
+  transition: border-color 0.2s, background-color 0.2s;
+
+  &:focus-within {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.48);
+  }
+}
+
+.nav-search-icon {
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+.nav-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #fff;
+  padding: 18px 12px;
+  @include relative-font-size(1.2);
+  font-family: $base-font-family;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.38);
+  }
+
+  &::-webkit-search-cancel-button,
+  &::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+}
+
+.nav-search-esc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: $base-font-family;
+  flex-shrink: 0;
+  pointer-events: none;
+
+  @include media-query($on-palm) {
+    display: none;
+  }
+}
+
+
+// ─── Search results ───────────────────────────────────────────────────────────
+
+.nav-search-results {
+  margin-top: 8px;
+}
+
+.nav-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 55vh;
+  overflow-y: auto;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.nav-search-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.is-selected .nav-search-link {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.nav-search-link {
+  display: block;
+  padding: 12px 16px;
+  text-decoration: none;
+  transition: background 0.12s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.nav-search-title {
+  display: block;
+  color: #fff;
+  @include relative-font-size(1.05);
+  font-weight: 500;
+  margin-bottom: 3px;
+
+  mark {
+    background: transparent;
+    color: #fff;
+    text-decoration: underline;
+    text-decoration-color: rgba($brand-color, 0.8);
+    text-underline-offset: 2px;
+  }
+}
+
+.nav-search-meta {
+  display: block;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: $small-font-size;
+  margin-bottom: 4px;
+  letter-spacing: 0.03em;
+}
+
+.nav-search-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: $small-font-size;
+  line-height: 1.5;
+
+  mark {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: underline;
+    text-decoration-color: rgba($brand-color, 0.6);
+    text-underline-offset: 1px;
+  }
+}
+
+.nav-search-empty {
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: $spacing-unit;
+  margin: 0;
+  font-size: $base-font-size;
+}
+
+
+// ─── Nav page links ───────────────────────────────────────────────────────────
+
+.nav-overlay-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: $spacing-unit * 1.5;
+  padding-top: $spacing-unit;
+  border-top: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.nav-overlay-link {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  padding: 7px 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: $small-font-size;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
