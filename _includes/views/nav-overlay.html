@@ -1,44 +1,73 @@
-<div id="nav-overlay" class="nav-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Site navigation and search">
-  <div class="nav-overlay-backdrop" id="nav-overlay-backdrop"></div>
-  <div class="nav-overlay-panel">
+<div id="nav-overlay" class="nav-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Search and navigation">
 
-    <button class="nav-overlay-close" id="nav-overlay-close" aria-label="Close navigation">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-        <line x1="18" y1="6" x2="6" y2="18"/>
-        <line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
+  <div class="ov-noise" aria-hidden="true"></div>
 
-    <div class="nav-overlay-search-section">
-      <div class="nav-overlay-search-box">
-        <svg class="nav-search-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-          type="search"
-          id="nav-search-input"
-          class="nav-search-input"
-          placeholder="Search posts..."
-          autocomplete="off"
-          spellcheck="false"
-          aria-label="Search posts"
-        >
-        <kbd class="nav-search-esc" aria-hidden="true">ESC</kbd>
-      </div>
-      <div id="nav-search-results" class="nav-search-results" aria-live="polite"></div>
-    </div>
+  <div class="ov-wordmark" id="ov-wordmark" aria-hidden="true">
+    <span class="ov-wl" style="--i:0">M</span><span class="ov-wl" style="--i:1">I</span><span class="ov-wl" style="--i:2">N</span><span class="ov-wl" style="--i:3">D</span>
+  </div>
 
-    <nav class="nav-overlay-links" aria-label="Site pages">
+  <div class="ov-cursor-dot" id="cursor-dot" aria-hidden="true"></div>
+  <div class="ov-cursor-ring" id="cursor-ring" aria-hidden="true"></div>
+
+  <div class="ov-corner-label" aria-hidden="true">PERSONAL BLOG &middot; EST 2023</div>
+
+  <nav class="ov-nav" aria-label="Site navigation">
+    <a class="ov-logo" href="{{ "/" | relative_url }}">mindofguru</a>
+    <div class="ov-nav-links">
       {%- assign default_paths = site.pages | where: "dir", "/" | map: "path" -%}
       {%- assign page_paths = site.header_pages | default: default_paths -%}
       {%- for path in page_paths -%}
         {%- assign my_page = site.pages | where: "path", path | first -%}
         {%- if my_page.title -%}
-        <a class="nav-overlay-link" href="{{ my_page.url | relative_url }}">{{ my_page.title | escape }}</a>
+        <a class="ov-nav-link" href="{{ my_page.url | relative_url }}">{{ my_page.title | escape }}</a>
         {%- endif -%}
       {%- endfor -%}
-    </nav>
+    </div>
+    <button class="ov-close" id="nav-overlay-close" aria-label="Close search">
+      <svg viewBox="0 0 20 20" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <line x1="15" y1="5" x2="5" y2="15"/>
+        <line x1="5" y1="5" x2="15" y2="15"/>
+      </svg>
+    </button>
+  </nav>
 
+  <div class="ov-search">
+    <div class="ov-search-meta">
+      <span class="ov-meta-label">SEARCH</span>
+      <span class="ov-post-count" id="search-post-count"></span>
+    </div>
+    <div class="ov-input-row">
+      <input
+        type="search"
+        id="nav-search-input"
+        class="ov-input"
+        placeholder="Search posts&#8230;"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Search posts"
+      >
+      <span class="ov-esc-hint" aria-hidden="true">ESC</span>
+    </div>
+    <div class="ov-underline">
+      <div class="ov-underline-fill"></div>
+      <div class="ov-underline-glow"></div>
+    </div>
+    <div class="ov-quick-tags" id="search-quick-links">
+      <span class="ov-quick-label">Try</span>
+      <button class="ov-quick-tag" data-query="mind">mind</button>
+      <button class="ov-quick-tag" data-query="systems">systems</button>
+      <button class="ov-quick-tag" data-query="code">code</button>
+      <button class="ov-quick-tag" data-query="philosophy">philosophy</button>
+      <button class="ov-quick-tag" data-query="aws">aws</button>
+    </div>
   </div>
+
+  <div class="ov-results" id="overlay-results-section">
+    <div class="ov-results-header">
+      <span class="ov-results-label">RESULTS</span>
+      <span class="ov-results-count" id="results-count"></span>
+    </div>
+    <div id="nav-search-results" class="ov-results-list" role="listbox" aria-live="polite"></div>
+  </div>
+
 </div>
