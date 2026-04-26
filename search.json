@@ -1,0 +1,43 @@
+[{
+  "title": "LLM-Powered Web Content Extraction with crawlAI",
+  "url": "/video/ai/crawlai/2025/03/21/crawl4ai.html",
+  "date": "Mar 21, 2025",
+  "tags": [],
+  "categories": ["video","AI","crawlAI"],
+  "excerpt": "How to Use crawlAI with a Local LLM to Extract Clean Web ContentIf you’re working with large websites and want to extract only the meaningful content—like articles, reviews, or tutorials—while ignoring all the clutter (ads, navigation, login prompts, etc.), crawlAI paired with a local LLM like llama3 is a powerful..."
+},{
+  "title": "Setting Up an AWS Lambda Triggered by API Gateway to Send Emails via SES",
+  "url": "/code/aws/2024/05/21/aws-lambda-api-ses.html",
+  "date": "May 21, 2024",
+  "tags": [],
+  "categories": ["code","aws"],
+  "excerpt": "In this blog post, we’ll walk through setting up an AWS Lambda function triggered by API Gateway that uses Amazon Simple Email Service (SES) to send emails. We’ll use Go to create the Lambda function, and our goal is to have the function fetch data from an external API and..."
+},{
+  "title": "Football Fixture Scraper Concept",
+  "url": "/webscraping/golang/html/web/football/soccer/sports/2023/09/01/futty-scraper.html",
+  "date": "Sep 01, 2023",
+  "tags": ["webdev","scraping","data","sports"],
+  "categories": ["webscraping","golang","html","web","football","soccer","sports"],
+  "excerpt": "In today’s data-driven world, information is often scattered across the web. Sometimes, we need to gather data from websites for various purposes, such as research, analysis, or automation. Go, a powerful programming language, provides us with the tools to perform web scraping and data extraction efficiently.In this blog post, we’ll..."
+},{
+  "title": "Premeditated Procrastination vs Willingly Ignorant: Are they the same?",
+  "url": "/chatgpt/philosophy/2023/07/12/philosophyGPT.html",
+  "date": "Jul 12, 2023",
+  "tags": ["AI"],
+  "categories": ["chatGPT","philosophy"],
+  "excerpt": "No, premeditated procrastination and willingly ignorant are not the same things, although they both involve a certain level of intention or choice.Premeditated procrastination refers to the deliberate act of delaying or postponing tasks or responsibilities, even though one knows that it may have negative consequences. It involves making a conscious..."
+},{
+  "title": "The Elusive Viewport Scrolling Bug",
+  "url": "/webdev/jekyll/front-end/programming/code/2023/07/10/the-bug.html",
+  "date": "Jul 10, 2023",
+  "tags": [],
+  "categories": ["webdev","jekyll","front-end","programming","code"],
+  "excerpt": "IntroductionHave you ever visited a website and experienced a strange scrolling behavior that seems to have a mind of its own? Well, just like Kanye West’s unpredictable personality, some websites have their own version of a scrolling bug that can drive users crazy. In this article, we’ll dive into the..."
+},{
+  "title": "Welcome!",
+  "url": "/etc/2023/07/02/welcome.html",
+  "date": "Jul 02, 2023",
+  "tags": ["welcome","first","intro"],
+  "categories": ["etc"],
+  "excerpt": "Welcome to my blog! This is my first post woohoo! More coming soon!"
+}]
